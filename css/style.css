@@ -620,3 +620,20 @@ label > span {
     padding: 20px;
   }
 }
+
+.prompt-helper-wrap {
+  margin-top: 28px;
+}
+
+.prompt-helper-wrap .choice-row {
+  gap: 14px;
+}
+
+#prompt-mode-row .choice-chip {
+  padding: 12px 16px;
+  font-size: 0.95rem;
+}
+
+.prompt-helper-wrap .stack {
+  gap: 18px;
+}
