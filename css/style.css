@@ -561,6 +561,10 @@ label > span {
   min-height: 1.2em;
 }
 
+.prompt-helper-wrap {
+  margin-top: 28px;
+}
+
 /* responsive */
 @media (max-width: 1100px) {
   .app-shell {
@@ -594,12 +598,4 @@ label > span {
   .card {
     padding: 20px;
   }
-}}
-
-#prompt-feedback {
-  min-height: 1.2em;
-}
-
-.prompt-helper-wrap {
-  margin-top: 28px;
 }
