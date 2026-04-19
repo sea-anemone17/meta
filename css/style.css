@@ -487,3 +487,13 @@ label {
   .main { padding: 18px; }
   .topbar { flex-direction: column; }
 }
+
+#prompt-output {
+  min-height: 220px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+#prompt-feedback {
+  min-height: 1.2em;
+}
