@@ -19,6 +19,7 @@ import {
   updateRoute
 } from './ui.js';
 import { asNumber, requireCurrentSession, validateEndPayload, validateStartPayload } from './validation.js';
+import { generatePrompt } from './prompt-builder.js';
 
 const RANGE_BINDINGS = [
   ['start-difficulty', 'start-difficulty-value'],
@@ -33,6 +34,8 @@ const RANGE_BINDINGS = [
   ['felt-incompetent', 'felt-incompetent-value'],
   ['distorted-outcome', 'distorted-outcome-value']
 ];
+
+let selectedPromptMode = 'routine';
 
 function stateRef() {
   return getState();
@@ -120,6 +123,8 @@ function hydratePreviousExperimentField() {
   const lastSession = stateRef().sessions[stateRef().sessions.length - 1];
   const select = document.getElementById('previous-experiment-effect');
   const note = document.getElementById('previous-experiment-note');
+  if (!select || !note) return;
+
   if (lastSession?.experiment?.planned && !lastSession.experiment.result?.helpful) {
     select.disabled = false;
     note.disabled = false;
@@ -141,6 +146,7 @@ function updatePreviousExperiment(endPayload) {
   if (lastIndex < 0 || !endPayload.previousExperimentEffect) return sessions;
   const last = sessions[lastIndex];
   if (!last.experiment?.planned) return sessions;
+
   sessions[lastIndex] = {
     ...last,
     experiment: {
@@ -155,13 +161,75 @@ function updatePreviousExperiment(endPayload) {
 }
 
 function resetForms() {
-  document.getElementById('start-form').reset();
-  document.getElementById('mid-form').reset();
-  document.getElementById('end-form').reset();
+  document.getElementById('start-form')?.reset();
+  document.getElementById('mid-form')?.reset();
+  document.getElementById('end-form')?.reset();
   setSelectedMood('안정');
   renderMoodOptions('안정');
-  renderSubjectReflectionFields(document.getElementById('subject').value || '수학');
+  renderSubjectReflectionFields(document.getElementById('subject')?.value || '수학');
   RANGE_BINDINGS.forEach(([inputId, outputId]) => bindRangeValue(inputId, outputId));
+}
+
+function getPromptSessionSource() {
+  const state = stateRef();
+  if (state.currentSession) return state.currentSession;
+  if (state.sessions.length > 0) return state.sessions[state.sessions.length - 1];
+  return null;
+}
+
+function getPromptReportSource() {
+  return buildReport(stateRef().sessions);
+}
+
+function renderPromptMode() {
+  const promptModeRow = document.getElementById('prompt-mode-row');
+  if (!promptModeRow) return;
+
+  const buttons = promptModeRow.querySelectorAll('[data-prompt-mode]');
+  buttons.forEach((btn) => {
+    const isActive = btn.dataset.promptMode === selectedPromptMode;
+    btn.classList.toggle('active', isActive);
+  });
+}
+
+function handleGeneratePrompt() {
+  const promptOutput = document.getElementById('prompt-output');
+  const promptFeedback = document.getElementById('prompt-feedback');
+
+  if (!promptOutput || !promptFeedback) return;
+
+  const session = getPromptSessionSource();
+  const report = getPromptReportSource();
+
+  if (!session) {
+    promptOutput.value = '';
+    promptFeedback.textContent = '먼저 세션을 하나 기록해 주세요.';
+    return;
+  }
+
+  const promptText = generatePrompt(selectedPromptMode, session, report);
+  promptOutput.value = promptText;
+  promptFeedback.textContent = '프롬프트가 생성되었습니다.';
+}
+
+async function handleCopyPrompt() {
+  const promptOutput = document.getElementById('prompt-output');
+  const promptFeedback = document.getElementById('prompt-feedback');
+
+  if (!promptOutput || !promptFeedback) return;
+
+  const text = promptOutput.value.trim();
+  if (!text) {
+    promptFeedback.textContent = '먼저 프롬프트를 생성해 주세요.';
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(text);
+    promptFeedback.textContent = '프롬프트를 복사했습니다.';
+  } catch (error) {
+    promptFeedback.textContent = '복사에 실패했습니다. 직접 선택해서 복사해 주세요.';
+  }
 }
 
 function bindEvents() {
@@ -169,18 +237,18 @@ function bindEvents() {
     button.addEventListener('click', () => handleRoute(button.dataset.route));
   });
 
-  document.getElementById('mood-options').addEventListener('click', (event) => {
+  document.getElementById('mood-options')?.addEventListener('click', (event) => {
     const button = event.target.closest('[data-mood]');
     if (!button) return;
     setSelectedMood(button.dataset.mood);
     renderMoodOptions(button.dataset.mood);
   });
 
-  document.getElementById('subject').addEventListener('change', (event) => {
+  document.getElementById('subject')?.addEventListener('change', (event) => {
     renderSubjectReflectionFields(event.target.value);
   });
 
-  document.getElementById('start-form').addEventListener('submit', (event) => {
+  document.getElementById('start-form')?.addEventListener('submit', (event) => {
     event.preventDefault();
     try {
       if (stateRef().currentSession) {
@@ -201,7 +269,7 @@ function bindEvents() {
     }
   });
 
-  document.getElementById('mid-form').addEventListener('submit', (event) => {
+  document.getElementById('mid-form')?.addEventListener('submit', (event) => {
     event.preventDefault();
     try {
       requireCurrentSession(stateRef().currentSession);
@@ -216,7 +284,7 @@ function bindEvents() {
     }
   });
 
-  document.getElementById('end-form').addEventListener('submit', (event) => {
+  document.getElementById('end-form')?.addEventListener('submit', (event) => {
     event.preventDefault();
     try {
       requireCurrentSession(stateRef().currentSession);
@@ -224,6 +292,7 @@ function bindEvents() {
       validateEndPayload(endPayload);
 
       let sessions = updatePreviousExperiment(endPayload);
+
       const draftCompleted = {
         ...stateRef().currentSession,
         outcome: {
@@ -250,9 +319,15 @@ function bindEvents() {
           successFactor: endPayload.successFactor
         }
       };
+
       const analysis = analyzeSession(draftCompleted);
       const plannedExperiment = chooseExperiment(analysis);
-      const { completed } = completeSession(stateRef().currentSession, endPayload, analysis, plannedExperiment);
+      const { completed } = completeSession(
+        stateRef().currentSession,
+        endPayload,
+        analysis,
+        plannedExperiment
+      );
 
       sessions = [...sessions, completed];
       setSessions(sessions);
@@ -269,7 +344,7 @@ function bindEvents() {
     }
   });
 
-  document.getElementById('seed-demo-btn').addEventListener('click', () => {
+  document.getElementById('seed-demo-btn')?.addEventListener('click', () => {
     const sessions = [...stateRef().sessions];
     DEMO_SESSIONS.forEach((sessionSeed) => {
       const now = new Date().toISOString();
@@ -294,22 +369,23 @@ function bindEvents() {
     window.alert('데모 기록 2개를 추가했습니다.');
   });
 
-  document.getElementById('reset-btn').addEventListener('click', () => {
+  document.getElementById('reset-btn')?.addEventListener('click', () => {
     const ok = window.confirm('모든 기록과 진행 중 세션을 삭제할까요?');
     if (!ok) return;
     clearAllData();
     setSessions([]);
     setCurrentSession(null);
     setLatestAnalysis(null);
+    setLatestReport(null);
     resetForms();
     refreshViews();
   });
 
-  document.getElementById('export-btn').addEventListener('click', () => {
+  document.getElementById('export-btn')?.addEventListener('click', () => {
     downloadJson(`meta-backup-${new Date().toISOString().slice(0, 10)}.json`, exportStore());
   });
 
-  document.getElementById('import-file').addEventListener('change', async (event) => {
+  document.getElementById('import-file')?.addEventListener('change', async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
     try {
@@ -325,6 +401,16 @@ function bindEvents() {
       event.target.value = '';
     }
   });
+
+  document.getElementById('prompt-mode-row')?.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-prompt-mode]');
+    if (!button) return;
+    selectedPromptMode = button.dataset.promptMode;
+    renderPromptMode();
+  });
+
+  document.getElementById('generate-prompt-btn')?.addEventListener('click', handleGeneratePrompt);
+  document.getElementById('copy-prompt-btn')?.addEventListener('click', handleCopyPrompt);
 }
 
 function init() {
@@ -332,9 +418,10 @@ function init() {
   RANGE_BINDINGS.forEach(([inputId, outputId]) => bindRangeValue(inputId, outputId));
   loadInitialData();
   renderMoodOptions(stateRef().selectedMood);
-  renderSubjectReflectionFields(document.getElementById('subject').value || '수학');
+  renderSubjectReflectionFields(document.getElementById('subject')?.value || '수학');
   hydratePreviousExperimentField();
   bindEvents();
+  renderPromptMode();
   refreshViews();
   updateRoute(stateRef().route);
 }
