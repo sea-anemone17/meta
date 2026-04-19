@@ -388,7 +388,20 @@ label > span {
 }
 
 .choice-chip {
-  font-weight: 500;
+  padding: 12px 16px;   /* 기존보다 살짝 키움 */
+  font-size: 0.95rem;
+}
+
+.choice-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;  /* 10 → 14 */
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;   /* 14 → 18 */
 }
 
 .choice-chip:hover,
