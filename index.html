@@ -3,232 +3,269 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>메타인지 스터디 플래너</title>
+  <title>Meta — 메타인지 스터디 대시보드</title>
   <link rel="stylesheet" href="css/style.css" />
-  <!--
-    일부 환경에서는 file:// 스키마로 로드할 때 외부 CSS 파일이
-    접근되지 않을 수 있습니다. 이를 대비해 스타일을 내장합니다.
-  -->
-  <style>
-    * {
-      box-sizing: border-box;
-    }
-    body {
-      margin: 0;
-      font-family: 'Segoe UI', Arial, sans-serif;
-      line-height: 1.5;
-      background-color: #f9fafb;
-      color: #111827;
-    }
-    .navbar {
-      background-color: #1f2937;
-      color: #ffffff;
-    }
-    .navbar ul {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-      display: flex;
-    }
-    .navbar li {
-      margin: 0;
-    }
-    .navbar a {
-      display: block;
-      padding: 0.75rem 1rem;
-      color: #ffffff;
-      text-decoration: none;
-      font-weight: 500;
-    }
-    .navbar a:hover {
-      background-color: #374151;
-    }
-    .page {
-      display: none;
-      padding: 1.5rem;
-    }
-    .page.active {
-      display: block;
-    }
-    form {
-      max-width: 500px;
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-    }
-    label {
-      display: flex;
-      flex-direction: column;
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: #374151;
-    }
-    input[type="text"],
-    input[type="number"],
-    select,
-    textarea {
-      padding: 0.5rem;
-      border: 1px solid #d1d5db;
-      border-radius: 4px;
-      font-size: 1rem;
-      background-color: #ffffff;
-      color: #111827;
-    }
-    textarea {
-      resize: vertical;
-    }
-    button {
-      padding: 0.6rem 1rem;
-      background-color: #2563eb;
-      border: none;
-      border-radius: 4px;
-      color: #ffffff;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background-color 0.2s ease;
-    }
-    button:hover {
-      background-color: #1d4ed8;
-    }
-    .message {
-      margin-top: 1rem;
-      color: #059669;
-      font-weight: 500;
-    }
-  </style>
 </head>
 <body>
-  <!-- Navigation bar -->
-  <nav class="navbar">
-    <ul>
-      <li><a href="#" data-target="home">홈</a></li>
-      <li><a href="#" data-target="start">시작</a></li>
-      <li><a href="#" data-target="end">종료</a></li>
-      <li><a href="#" data-target="analysis">분석</a></li>
-      <li><a href="#" data-target="pattern">패턴</a></li>
-    </ul>
-  </nav>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">M</div>
+        <div>
+          <h1>Meta</h1>
+          <p>메타인지 스터디 대시보드</p>
+        </div>
+      </div>
 
-  <main>
-    <!-- Home / Dashboard Page -->
-    <section id="home" class="page">
-      <h1>메타인지 대시보드</h1>
-      <div id="home-summary"></div>
-    </section>
+      <nav class="nav" aria-label="주요 탐색">
+        <button class="nav-link active" data-route="dashboard">대시보드</button>
+        <button class="nav-link" data-route="session">세션</button>
+        <button class="nav-link" data-route="insight">인사이트</button>
+        <button class="nav-link" data-route="pattern">패턴</button>
+        <button class="nav-link" data-route="archive">아카이브</button>
+      </nav>
 
-    <!-- Start Session Page -->
-    <section id="start" class="page">
-      <h1>시작 전 체크</h1>
-      <form id="start-form">
-        <label>
-          과목:
-          <input type="text" id="subject" required />
-        </label>
-        <label>
-          작업 내용:
-          <input type="text" id="taskDetail" required />
-        </label>
-        <label>
-          예상 공부시간 (분):
-          <input type="number" id="predictedAmount" min="1" required />
-        </label>
-        <label>
-          시작 난이도 (1~5):
-          <input type="number" id="startDifficulty" min="1" max="5" required />
-        </label>
-        <label>
-          예상 집중도 (1~5):
-          <input type="number" id="predictedFocus" min="1" max="5" required />
-        </label>
-        <label>
-          예상 이해도 (1~5):
-          <input type="number" id="predictedUnderstanding" min="1" max="5" required />
-        </label>
-        <label>
-          현재 상태:
-          <select id="moodBefore">
-            <option value="안정">안정</option>
-            <option value="불안">불안</option>
-            <option value="무기력">무기력</option>
-            <option value="회피">회피</option>
-            <option value="피곤">피곤</option>
-            <option value="약간 몰입">약간 몰입</option>
-          </select>
-        </label>
-        <button type="submit">세션 시작</button>
-      </form>
-      <div id="start-message" class="message"></div>
-    </section>
+      <section class="sidebar-card compact">
+        <h2>현재 상태</h2>
+        <div id="sidebar-status" class="mini-stack"></div>
+      </section>
+    </aside>
 
-    <!-- End Session Page -->
-    <section id="end" class="page">
-      <h1>종료 후 체크</h1>
-      <form id="end-form">
-        <label>
-          실제 공부시간 (분):
-          <input type="number" id="actualAmount" min="0" required />
-        </label>
-        <label>
-          실제 집중도 (1~5):
-          <input type="number" id="actualFocus" min="1" max="5" required />
-        </label>
-        <label>
-          실제 이해도 (1~5):
-          <input type="number" id="actualUnderstanding" min="1" max="5" required />
-        </label>
-        <label>
-          중단 횟수:
-          <input type="number" id="interruptions" min="0" required />
-        </label>
-        <label>
-          주요 방해 요인:
-          <select id="mainObstacle">
-            <option value="소음">소음</option>
-            <option value="휴대폰">휴대폰</option>
-            <option value="환경">환경</option>
-            <option value="피로">피로</option>
-            <option value="감정">감정</option>
-            <option value="집중">집중</option>
-            <option value="딴생각">딴생각</option>
-            <option value="기타">기타</option>
-          </select>
-        </label>
-        <label>
-          오늘 배운 내용 한 줄 요약:
-          <textarea id="recallSummary" rows="3"></textarea>
-        </label>
-        <label>
-          가장 막힌 지점:
-          <textarea id="stuckPoint" rows="2"></textarea>
-        </label>
-        <label>
-          전반적인 느낌:
-          <select id="overallFeeling">
-            <option value="생각보다 괜찮음">생각보다 괜찮음</option>
-            <option value="예상보다 힘듦">예상보다 힘듦</option>
-            <option value="망한 느낌">망한 느낌</option>
-            <option value="무난함">무난함</option>
-          </select>
-        </label>
-        <button type="submit">세션 종료</button>
-      </form>
-      <div id="end-message" class="message"></div>
-    </section>
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Metacognition Recovery Interface</p>
+          <h2 id="page-title">대시보드</h2>
+        </div>
+        <div class="topbar-actions">
+          <button id="seed-demo-btn" class="ghost-btn">데모 기록 추가</button>
+          <button id="reset-btn" class="danger-btn">기록 초기화</button>
+        </div>
+      </header>
 
-    <!-- Analysis Page -->
-    <section id="analysis" class="page">
-      <h1>세션 분석</h1>
-      <div id="analysis-content"></div>
-    </section>
+      <section id="dashboard-view" class="view active">
+        <div class="grid two-col dashboard-grid">
+          <article class="card hero-card">
+            <div class="card-head">
+              <div>
+                <p class="eyebrow">오늘의 경고</p>
+                <h3>지금 내가 나를 어떻게 착각하고 있나</h3>
+              </div>
+            </div>
+            <div id="warning-list" class="stack"></div>
+          </article>
 
-    <!-- Pattern Page -->
-    <section id="pattern" class="page">
-      <h1>패턴 / 아카이브</h1>
-      <div id="pattern-content"></div>
-    </section>
-  </main>
+          <article class="card">
+            <div class="card-head">
+              <div>
+                <p class="eyebrow">오늘의 상태 카드</p>
+                <h3>메타인지 상태 요약</h3>
+              </div>
+            </div>
+            <div id="status-cards" class="pill-grid"></div>
+          </article>
+        </div>
 
-  <script src="js/app.js"></script>
+        <div class="grid three-col">
+          <article class="card">
+            <div class="card-head">
+              <div>
+                <p class="eyebrow">최근 7회</p>
+                <h3>오차 경향</h3>
+              </div>
+            </div>
+            <div id="trend-summary" class="stack"></div>
+          </article>
+
+          <article class="card">
+            <div class="card-head">
+              <div>
+                <p class="eyebrow">대표 유형</p>
+                <h3>반복되는 패턴</h3>
+              </div>
+            </div>
+            <div id="archetype-summary" class="stack"></div>
+          </article>
+
+          <article class="card">
+            <div class="card-head">
+              <div>
+                <p class="eyebrow">추천 행동</p>
+                <h3>다음 세션 제안</h3>
+              </div>
+            </div>
+            <div id="recommended-actions" class="stack"></div>
+          </article>
+        </div>
+      </section>
+
+      <section id="session-view" class="view">
+        <div class="grid two-col session-grid">
+          <article class="card">
+            <div class="card-head">
+              <div>
+                <p class="eyebrow">Step 1</p>
+                <h3>시작 전 체크</h3>
+              </div>
+            </div>
+            <form id="start-form" class="form-grid">
+              <label>과목
+                <select id="subject" required></select>
+              </label>
+              <label>작업 유형
+                <select id="task-type" required></select>
+              </label>
+              <label class="span-2">오늘 할 내용
+                <input id="task-detail" type="text" maxlength="120" placeholder="예: 수열 3점 기출 10문제" required />
+              </label>
+              <label>예상 공부량 (분)
+                <input id="predicted-amount" type="number" min="5" max="300" required />
+              </label>
+              <label>시작 난이도 (1~5)
+                <input id="start-difficulty" type="range" min="1" max="5" value="3" />
+                <span id="start-difficulty-value" class="range-value">3</span>
+              </label>
+              <label>예상 집중도 (1~5)
+                <input id="predicted-focus" type="range" min="1" max="5" value="3" />
+                <span id="predicted-focus-value" class="range-value">3</span>
+              </label>
+              <label>예상 이해도 (1~5)
+                <input id="predicted-understanding" type="range" min="1" max="5" value="3" />
+                <span id="predicted-understanding-value" class="range-value">3</span>
+              </label>
+              <label class="span-2">현재 상태
+                <div id="mood-options" class="choice-row"></div>
+              </label>
+              <button type="submit" class="primary-btn span-2">세션 시작</button>
+            </form>
+          </article>
+
+          <article class="card">
+            <div class="card-head">
+              <div>
+                <p class="eyebrow">진행 중 세션</p>
+                <h3>현재 세션 상태</h3>
+              </div>
+            </div>
+            <div id="current-session-card" class="stack"></div>
+            <div class="divider"></div>
+            <div class="card-head">
+              <div>
+                <p class="eyebrow">Step 2</p>
+                <h3>중간 체크</h3>
+              </div>
+            </div>
+            <form id="mid-form" class="stack compact-form">
+              <label><input id="mid-stuck" type="checkbox" /> 지금 막히는 지점이 있다</label>
+              <label><input id="mid-focus-drop" type="checkbox" /> 예상보다 집중이 떨어지고 있다</label>
+              <label><input id="mid-wandering" type="checkbox" /> 딴생각/이탈이 많아졌다</label>
+              <button type="submit" class="ghost-btn">중간 체크 저장</button>
+            </form>
+          </article>
+        </div>
+
+        <article class="card">
+          <div class="card-head">
+            <div>
+              <p class="eyebrow">Step 3</p>
+              <h3>종료 후 체크</h3>
+            </div>
+          </div>
+          <form id="end-form" class="form-grid">
+            <label>실제 공부량 (분)
+              <input id="actual-amount" type="number" min="0" max="400" required />
+            </label>
+            <label>중단 횟수
+              <input id="interruptions" type="number" min="0" max="20" value="0" required />
+            </label>
+            <label>실제 집중도 (1~5)
+              <input id="actual-focus" type="range" min="1" max="5" value="3" />
+              <span id="actual-focus-value" class="range-value">3</span>
+            </label>
+            <label>실제 이해도 (1~5)
+              <input id="actual-understanding" type="range" min="1" max="5" value="3" />
+              <span id="actual-understanding-value" class="range-value">3</span>
+            </label>
+            <label>주요 방해 요인
+              <select id="main-obstacle" required></select>
+            </label>
+            <label>오늘의 체감
+              <select id="overall-feeling" required></select>
+            </label>
+            <label class="span-2">오늘 배운 내용 한 줄 설명
+              <textarea id="recall-summary" rows="3" maxlength="240" placeholder="예: 점화식 유형은 구분했지만 일반항 전환이 아직 헷갈린다."></textarea>
+            </label>
+            <label class="span-2">가장 막힌 지점
+              <textarea id="stuck-point" rows="2" maxlength="160" placeholder="예: 점화식에서 일반항으로 바꾸는 부분"></textarea>
+            </label>
+            <button type="submit" class="primary-btn span-2">세션 종료 후 분석 보기</button>
+          </form>
+        </article>
+      </section>
+
+      <section id="insight-view" class="view">
+        <div id="insight-empty" class="card empty-card">
+          <h3>아직 분석할 세션이 없습니다</h3>
+          <p>세션을 하나 완료하면 오늘의 오차 유형과 조정 포인트를 볼 수 있습니다.</p>
+        </div>
+        <div id="insight-content" class="grid two-col hidden"></div>
+      </section>
+
+      <section id="pattern-view" class="view">
+        <div class="grid two-col">
+          <article class="card">
+            <div class="card-head">
+              <div>
+                <p class="eyebrow">패턴</p>
+                <h3>최근 7회 경향</h3>
+              </div>
+            </div>
+            <div id="pattern-overview" class="stack"></div>
+          </article>
+          <article class="card">
+            <div class="card-head">
+              <div>
+                <p class="eyebrow">과목별</p>
+                <h3>오차 안정도</h3>
+              </div>
+            </div>
+            <div id="subject-patterns" class="stack"></div>
+          </article>
+        </div>
+        <div class="grid three-col">
+          <article class="card">
+            <div class="card-head"><h3>주요 원인</h3></div>
+            <div id="cause-patterns" class="stack"></div>
+          </article>
+          <article class="card">
+            <div class="card-head"><h3>핵심 지표</h3></div>
+            <div id="metric-patterns" class="stack"></div>
+          </article>
+          <article class="card">
+            <div class="card-head"><h3>대표 유형</h3></div>
+            <div id="type-patterns" class="stack"></div>
+          </article>
+        </div>
+      </section>
+
+      <section id="archive-view" class="view">
+        <article class="card">
+          <div class="card-head archive-head">
+            <div>
+              <p class="eyebrow">Archive</p>
+              <h3>기록 아카이브</h3>
+            </div>
+            <div class="archive-filters">
+              <select id="archive-subject-filter"></select>
+              <select id="archive-type-filter"></select>
+            </div>
+          </div>
+          <div id="archive-list" class="stack"></div>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
 </body>
 </html>
