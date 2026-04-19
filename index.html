@@ -1,1 +1,234 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>메타인지 스터디 플래너</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <!--
+    일부 환경에서는 file:// 스키마로 로드할 때 외부 CSS 파일이
+    접근되지 않을 수 있습니다. 이를 대비해 스타일을 내장합니다.
+  -->
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      line-height: 1.5;
+      background-color: #f9fafb;
+      color: #111827;
+    }
+    .navbar {
+      background-color: #1f2937;
+      color: #ffffff;
+    }
+    .navbar ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+    }
+    .navbar li {
+      margin: 0;
+    }
+    .navbar a {
+      display: block;
+      padding: 0.75rem 1rem;
+      color: #ffffff;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .navbar a:hover {
+      background-color: #374151;
+    }
+    .page {
+      display: none;
+      padding: 1.5rem;
+    }
+    .page.active {
+      display: block;
+    }
+    form {
+      max-width: 500px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    label {
+      display: flex;
+      flex-direction: column;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #374151;
+    }
+    input[type="text"],
+    input[type="number"],
+    select,
+    textarea {
+      padding: 0.5rem;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      font-size: 1rem;
+      background-color: #ffffff;
+      color: #111827;
+    }
+    textarea {
+      resize: vertical;
+    }
+    button {
+      padding: 0.6rem 1rem;
+      background-color: #2563eb;
+      border: none;
+      border-radius: 4px;
+      color: #ffffff;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    button:hover {
+      background-color: #1d4ed8;
+    }
+    .message {
+      margin-top: 1rem;
+      color: #059669;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation bar -->
+  <nav class="navbar">
+    <ul>
+      <li><a href="#" data-target="home">홈</a></li>
+      <li><a href="#" data-target="start">시작</a></li>
+      <li><a href="#" data-target="end">종료</a></li>
+      <li><a href="#" data-target="analysis">분석</a></li>
+      <li><a href="#" data-target="pattern">패턴</a></li>
+    </ul>
+  </nav>
 
+  <main>
+    <!-- Home / Dashboard Page -->
+    <section id="home" class="page">
+      <h1>메타인지 대시보드</h1>
+      <div id="home-summary"></div>
+    </section>
+
+    <!-- Start Session Page -->
+    <section id="start" class="page">
+      <h1>시작 전 체크</h1>
+      <form id="start-form">
+        <label>
+          과목:
+          <input type="text" id="subject" required />
+        </label>
+        <label>
+          작업 내용:
+          <input type="text" id="taskDetail" required />
+        </label>
+        <label>
+          예상 공부시간 (분):
+          <input type="number" id="predictedAmount" min="1" required />
+        </label>
+        <label>
+          시작 난이도 (1~5):
+          <input type="number" id="startDifficulty" min="1" max="5" required />
+        </label>
+        <label>
+          예상 집중도 (1~5):
+          <input type="number" id="predictedFocus" min="1" max="5" required />
+        </label>
+        <label>
+          예상 이해도 (1~5):
+          <input type="number" id="predictedUnderstanding" min="1" max="5" required />
+        </label>
+        <label>
+          현재 상태:
+          <select id="moodBefore">
+            <option value="안정">안정</option>
+            <option value="불안">불안</option>
+            <option value="무기력">무기력</option>
+            <option value="회피">회피</option>
+            <option value="피곤">피곤</option>
+            <option value="약간 몰입">약간 몰입</option>
+          </select>
+        </label>
+        <button type="submit">세션 시작</button>
+      </form>
+      <div id="start-message" class="message"></div>
+    </section>
+
+    <!-- End Session Page -->
+    <section id="end" class="page">
+      <h1>종료 후 체크</h1>
+      <form id="end-form">
+        <label>
+          실제 공부시간 (분):
+          <input type="number" id="actualAmount" min="0" required />
+        </label>
+        <label>
+          실제 집중도 (1~5):
+          <input type="number" id="actualFocus" min="1" max="5" required />
+        </label>
+        <label>
+          실제 이해도 (1~5):
+          <input type="number" id="actualUnderstanding" min="1" max="5" required />
+        </label>
+        <label>
+          중단 횟수:
+          <input type="number" id="interruptions" min="0" required />
+        </label>
+        <label>
+          주요 방해 요인:
+          <select id="mainObstacle">
+            <option value="소음">소음</option>
+            <option value="휴대폰">휴대폰</option>
+            <option value="환경">환경</option>
+            <option value="피로">피로</option>
+            <option value="감정">감정</option>
+            <option value="집중">집중</option>
+            <option value="딴생각">딴생각</option>
+            <option value="기타">기타</option>
+          </select>
+        </label>
+        <label>
+          오늘 배운 내용 한 줄 요약:
+          <textarea id="recallSummary" rows="3"></textarea>
+        </label>
+        <label>
+          가장 막힌 지점:
+          <textarea id="stuckPoint" rows="2"></textarea>
+        </label>
+        <label>
+          전반적인 느낌:
+          <select id="overallFeeling">
+            <option value="생각보다 괜찮음">생각보다 괜찮음</option>
+            <option value="예상보다 힘듦">예상보다 힘듦</option>
+            <option value="망한 느낌">망한 느낌</option>
+            <option value="무난함">무난함</option>
+          </select>
+        </label>
+        <button type="submit">세션 종료</button>
+      </form>
+      <div id="end-message" class="message"></div>
+    </section>
+
+    <!-- Analysis Page -->
+    <section id="analysis" class="page">
+      <h1>세션 분석</h1>
+      <div id="analysis-content"></div>
+    </section>
+
+    <!-- Pattern Page -->
+    <section id="pattern" class="page">
+      <h1>패턴 / 아카이브</h1>
+      <div id="pattern-content"></div>
+    </section>
+  </main>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
