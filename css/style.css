@@ -637,3 +637,17 @@ label > span {
 .prompt-helper-wrap .stack {
   gap: 18px;
 }
+
+.topbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+}
+
+.topbar-actions .ghost-btn,
+.topbar-actions .danger-btn,
+.topbar-actions .file-btn {
+  padding: 12px 16px;
+  min-height: 46px;
+}
