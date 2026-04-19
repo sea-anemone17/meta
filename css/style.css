@@ -115,13 +115,13 @@ textarea:focus {
 
 textarea {
   resize: vertical;
-  min-height: 96px;
+  min-height: 104px;
 }
 
 label {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
   color: var(--muted);
   font-size: 0.94rem;
   line-height: 1.45;
@@ -216,9 +216,9 @@ label > span {
 /* brand */
 .brand {
   display: flex;
-  gap: 14px;
+  gap: var(--space-3);
   align-items: center;
-  margin-bottom: 30px;
+  margin-bottom: var(--space-6);
 }
 
 .brand-mark {
@@ -248,8 +248,8 @@ label > span {
 .nav {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-bottom: 28px;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
 }
 
 .nav-link {
@@ -275,6 +275,33 @@ label > span {
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
 }
 
+/* topbar */
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  align-items: flex-start;
+  margin-bottom: 26px;
+}
+
+.topbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.topbar-actions .ghost-btn,
+.topbar-actions .danger-btn,
+.topbar-actions .file-btn {
+  padding: 12px 16px;
+  min-height: 46px;
+}
+
+.topbar-actions .danger-btn {
+  margin-left: 4px;
+}
+
 /* cards */
 .card,
 .sidebar-card {
@@ -290,30 +317,46 @@ label > span {
 }
 
 .card {
-  padding: 24px;
+  padding: var(--space-5);
 }
 
 .sidebar-card {
-  padding: 18px;
-  margin-bottom: 14px;
+  padding: var(--space-4);
+  margin-bottom: var(--space-3);
 }
 
 .card-head {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
   align-items: flex-start;
-  margin-bottom: 18px;
+  margin-bottom: var(--space-4);
 }
 
 .hero-card {
-  min-height: 220px;
+  min-height: 240px;
+}
+
+.prompt-helper-wrap {
+  margin-top: 28px;
+}
+
+.prompt-helper-wrap .card {
+  border-color: rgba(159,181,255,0.12);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.06),
+    0 18px 40px rgba(0,0,0,0.18),
+    0 0 0 1px rgba(159,181,255,0.04);
+}
+
+.prompt-helper-wrap .card-head h3 {
+  color: var(--accent-strong);
 }
 
 /* grid */
 .grid {
   display: grid;
-  gap: 20px;
+  gap: var(--space-5);
 }
 
 .two-col {
@@ -322,7 +365,7 @@ label > span {
 
 .three-col {
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin-top: 20px;
+  margin-top: var(--space-5);
 }
 
 .view {
@@ -336,13 +379,13 @@ label > span {
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
+  gap: var(--space-4);
 }
 
 .pill-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  gap: var(--space-3);
 }
 
 .span-2 {
@@ -350,26 +393,26 @@ label > span {
 }
 
 .compact-form {
-  gap: 14px;
+  gap: var(--space-3);
 }
 
 /* generic stacks */
 .stack {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--space-4);
 }
 
 .mini-stack {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-2);
 }
 
 .choice-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: var(--space-3);
 }
 
 /* controls */
@@ -379,39 +422,42 @@ label > span {
 .danger-btn,
 .file-btn {
   border-radius: 15px;
-  padding: 11px 14px;
+  padding: 12px 16px;
   border: 1px solid var(--line);
   background: rgba(255,255,255,0.04);
   color: var(--text);
   box-shadow: none;
-  min-height: 44px;
+  min-height: 46px;
+}
+
+.choice-chip,
+.ghost-btn,
+.file-btn {
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 .choice-chip {
-  padding: 12px 16px;   /* 기존보다 살짝 키움 */
   font-size: 0.95rem;
-}
-
-.choice-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;  /* 10 → 14 */
-}
-
-.stack {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;   /* 14 → 18 */
+  font-weight: 500;
 }
 
 .choice-chip:hover,
 .ghost-btn:hover,
 .file-btn:hover {
-  background: rgba(255,255,255,0.06);
-  border-color: rgba(255,255,255,0.09);
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.12);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.25);
 }
 
-.choice-chip.active,
+.choice-chip.active {
+  background:
+    linear-gradient(180deg, rgba(159,181,255,0.22), rgba(159,181,255,0.12));
+  border-color: rgba(159,181,255,0.35);
+  box-shadow: 0 10px 22px rgba(159,181,255,0.12);
+}
+
 .primary-btn {
   background:
     linear-gradient(180deg, rgba(159,181,255,0.18), rgba(159,181,255,0.10));
@@ -419,10 +465,8 @@ label > span {
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.08),
     0 8px 20px rgba(159,181,255,0.08);
-}
-
-.primary-btn {
-  font-weight: 600;
+  font-weight: 620;
+  color: #eef3ff;
 }
 
 .primary-btn:hover {
@@ -448,7 +492,7 @@ label > span {
 .toggle-field {
   flex-direction: row;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-2);
   background: rgba(255,255,255,0.035);
   padding: 12px 14px;
   border: 1px solid var(--line);
@@ -529,9 +573,9 @@ label > span {
 }
 
 .metric-value {
-  font-size: 2rem;
-  font-weight: 700;
-  letter-spacing: -0.03em;
+  font-size: 2.1rem;
+  font-weight: 720;
+  letter-spacing: -0.04em;
   margin-top: 10px;
   line-height: 1.1;
 }
@@ -582,10 +626,6 @@ label > span {
   min-height: 1.2em;
 }
 
-.prompt-helper-wrap {
-  margin-top: 28px;
-}
-
 /* responsive */
 @media (max-width: 1100px) {
   .app-shell {
@@ -619,35 +659,4 @@ label > span {
   .card {
     padding: 20px;
   }
-}
-
-.prompt-helper-wrap {
-  margin-top: 28px;
-}
-
-.prompt-helper-wrap .choice-row {
-  gap: 14px;
-}
-
-#prompt-mode-row .choice-chip {
-  padding: 12px 16px;
-  font-size: 0.95rem;
-}
-
-.prompt-helper-wrap .stack {
-  gap: 18px;
-}
-
-.topbar-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-  align-items: center;
-}
-
-.topbar-actions .ghost-btn,
-.topbar-actions .danger-btn,
-.topbar-actions .file-btn {
-  padding: 12px 16px;
-  min-height: 46px;
 }
