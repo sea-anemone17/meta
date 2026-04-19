@@ -599,3 +599,7 @@ label > span {
 #prompt-feedback {
   min-height: 1.2em;
 }
+
+.prompt-helper-wrap {
+  margin-top: 28px;
+}
