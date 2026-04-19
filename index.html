@@ -105,6 +105,95 @@
             <div id="recommended-actions" class="stack"></div>
           </article>
         </div>
+
+      <section id="dashboard-view" class="view active">
+        <div class="grid two-col dashboard-grid">
+          <article class="card hero-card">
+            <div class="card-head">
+              <div>
+                <p class="eyebrow">오늘의 요약</p>
+                <h3>최근 경향</h3>
+              </div>
+            </div>
+            <div id="warning-list" class="stack"></div>
+          </article>
+
+          <article class="card">
+            <div class="card-head">
+              <div>
+                <p class="eyebrow">핵심 지표</p>
+                <h3>최근 7회 기준</h3>
+              </div>
+            </div>
+            <div id="status-cards" class="pill-grid"></div>
+          </article>
+        </div>
+
+        <div class="grid three-col">
+          <article class="card">
+            <div class="card-head">
+              <div>
+                <p class="eyebrow">실험</p>
+                <h3>최근 효과</h3>
+              </div>
+            </div>
+            <div id="trend-summary" class="stack"></div>
+          </article>
+
+          <article class="card">
+            <div class="card-head">
+              <div>
+                <p class="eyebrow">원인</p>
+                <h3>반복되는 병목</h3>
+              </div>
+            </div>
+            <div id="archetype-summary" class="stack"></div>
+          </article>
+
+          <article class="card">
+            <div class="card-head">
+              <div>
+                <p class="eyebrow">다음 행동</p>
+                <h3>추천 실험</h3>
+              </div>
+            </div>
+            <div id="recommended-actions" class="stack"></div>
+          </article>
+        </div>
+
+        <article class="card">
+          <div class="card-head">
+            <div>
+              <p class="eyebrow">AI Prompt Helper</p>
+              <h3>AI 프롬프트 도우미</h3>
+            </div>
+          </div>
+
+          <div class="stack">
+            <div class="choice-row" id="prompt-mode-row">
+              <button class="choice-chip active" data-prompt-mode="routine" type="button">오늘 루틴</button>
+              <button class="choice-chip" data-prompt-mode="reflection" type="button">오늘 회고</button>
+              <button class="choice-chip" data-prompt-mode="weekly" type="button">주간 분석</button>
+              <button class="choice-chip" data-prompt-mode="subject" type="button">과목 전략</button>
+            </div>
+
+            <div class="info-strip">
+              현재 세션과 최근 리포트를 바탕으로 AI에 붙여넣기 좋은 프롬프트를 생성합니다.
+            </div>
+
+            <div class="choice-row">
+              <button id="generate-prompt-btn" class="primary-btn" type="button">프롬프트 생성</button>
+              <button id="copy-prompt-btn" class="ghost-btn" type="button">복사하기</button>
+            </div>
+
+            <label>
+              생성된 프롬프트
+              <textarea id="prompt-output" readonly placeholder="버튼을 누르면 여기에 프롬프트가 생성됩니다."></textarea>
+            </label>
+
+            <p id="prompt-feedback" class="subtle"></p>
+          </div>
+        </article>
       </section>
 
       <section id="session-view" class="view">
