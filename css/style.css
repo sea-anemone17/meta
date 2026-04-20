@@ -660,3 +660,15 @@ label > span {
     padding: 20px;
   }
 }
+
+.mood-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field-label {
+  color: var(--muted);
+  font-size: 0.94rem;
+  line-height: 1.45;
+}
