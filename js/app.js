@@ -1,7 +1,23 @@
 import { analyzeSession, buildReport } from './analysis.js';
 import { DEMO_SESSIONS, EXPERIMENT_OPTIONS } from './data.js';
-import { getState, setCurrentSession, setLatestAnalysis, setLatestReport, setRoute, setSelectedMood, setSessions } from './state.js';
-import { exportStore, importStore, loadCurrentSession, loadSessions, saveCurrentSession, saveSessions, clearAllData } from './storage.js';
+import {
+  getState,
+  setCurrentSession,
+  setLatestAnalysis,
+  setLatestReport,
+  setRoute,
+  setSelectedMood,
+  setSessions
+} from './state.js';
+import {
+  exportStore,
+  importStore,
+  loadCurrentSession,
+  loadSessions,
+  saveCurrentSession,
+  saveSessions,
+  clearAllData
+} from './storage.js';
 import { createSession, applyMidCheck, completeSession } from './session-model.js';
 import {
   bindRangeValue,
@@ -18,7 +34,12 @@ import {
   renderSubjectReflectionFields,
   updateRoute
 } from './ui.js';
-import { asNumber, requireCurrentSession, validateEndPayload, validateStartPayload } from './validation.js';
+import {
+  asNumber,
+  requireCurrentSession,
+  validateEndPayload,
+  validateStartPayload
+} from './validation.js';
 import { generatePrompt } from './prompt-builder.js';
 
 const RANGE_BINDINGS = [
@@ -36,15 +57,23 @@ const RANGE_BINDINGS = [
 ];
 
 let selectedPromptMode = 'routine';
+let selectedMood = '안정';
 
 function stateRef() {
   return getState();
+}
+
+function syncSelectedMood(nextMood) {
+  selectedMood = nextMood;
+  setSelectedMood(nextMood);
+  renderMoodOptions(selectedMood);
 }
 
 function refreshViews() {
   const state = stateRef();
   const report = buildReport(state.sessions);
   setLatestReport(report);
+
   const latestSession = state.sessions[state.sessions.length - 1] || null;
   setLatestAnalysis(latestSession?.analysis || null);
 
@@ -59,7 +88,9 @@ function refreshViews() {
 function loadInitialData() {
   setSessions(loadSessions());
   setCurrentSession(loadCurrentSession());
-  setSelectedMood(stateRef().currentSession?.prediction?.moodBefore || '안정');
+
+  selectedMood = stateRef().currentSession?.prediction?.moodBefore || '안정';
+  setSelectedMood(selectedMood);
 }
 
 function handleRoute(route) {
@@ -82,7 +113,7 @@ function getStartPayload() {
     location: document.getElementById('location').value,
     noiseLevel: asNumber(document.getElementById('noise-level').value, 2),
     phoneBlocked: document.getElementById('phone-blocked').checked,
-    moodBefore: stateRef().selectedMood
+    moodBefore: selectedMood
   };
 }
 
@@ -97,7 +128,9 @@ function getMidPayload() {
 }
 
 function getEndPayload() {
-  const subject = stateRef().currentSession?.context?.subject || document.getElementById('subject').value;
+  const subject =
+    stateRef().currentSession?.context?.subject || document.getElementById('subject').value;
+
   return {
     actualAmount: asNumber(document.getElementById('actual-amount').value, 0),
     interruptions: asNumber(document.getElementById('interruptions').value, 0),
@@ -123,6 +156,7 @@ function hydratePreviousExperimentField() {
   const lastSession = stateRef().sessions[stateRef().sessions.length - 1];
   const select = document.getElementById('previous-experiment-effect');
   const note = document.getElementById('previous-experiment-note');
+
   if (!select || !note) return;
 
   if (lastSession?.experiment?.planned && !lastSession.experiment.result?.helpful) {
@@ -143,7 +177,9 @@ function chooseExperiment(analysis) {
 function updatePreviousExperiment(endPayload) {
   const sessions = [...stateRef().sessions];
   const lastIndex = sessions.length - 1;
+
   if (lastIndex < 0 || !endPayload.previousExperimentEffect) return sessions;
+
   const last = sessions[lastIndex];
   if (!last.experiment?.planned) return sessions;
 
@@ -157,6 +193,7 @@ function updatePreviousExperiment(endPayload) {
       }
     }
   };
+
   return sessions;
 }
 
@@ -164,8 +201,9 @@ function resetForms() {
   document.getElementById('start-form')?.reset();
   document.getElementById('mid-form')?.reset();
   document.getElementById('end-form')?.reset();
-  setSelectedMood('안정');
-  renderMoodOptions('안정');
+
+  syncSelectedMood('안정');
+
   renderSubjectReflectionFields(document.getElementById('subject')?.value || '수학');
   RANGE_BINDINGS.forEach(([inputId, outputId]) => bindRangeValue(inputId, outputId));
 }
@@ -227,7 +265,7 @@ async function handleCopyPrompt() {
   try {
     await navigator.clipboard.writeText(text);
     promptFeedback.textContent = '프롬프트를 복사했습니다.';
-  } catch (error) {
+  } catch {
     promptFeedback.textContent = '복사에 실패했습니다. 직접 선택해서 복사해 주세요.';
   }
 }
@@ -240,8 +278,7 @@ function bindEvents() {
   document.getElementById('mood-options')?.addEventListener('click', (event) => {
     const button = event.target.closest('[data-mood]');
     if (!button) return;
-    setSelectedMood(button.dataset.mood);
-    renderMoodOptions(button.dataset.mood);
+    syncSelectedMood(button.dataset.mood);
   });
 
   document.getElementById('subject')?.addEventListener('change', (event) => {
@@ -250,16 +287,20 @@ function bindEvents() {
 
   document.getElementById('start-form')?.addEventListener('submit', (event) => {
     event.preventDefault();
+
     try {
       if (stateRef().currentSession) {
         const overwrite = window.confirm('진행 중인 세션이 있습니다. 폐기하고 새로 시작할까요?');
         if (!overwrite) return;
       }
+
       const payload = getStartPayload();
       validateStartPayload(payload);
+
       const session = createSession(payload);
       setCurrentSession(session);
       saveCurrentSession(session);
+
       renderCurrentSession(session);
       handleRoute('session');
       window.alert('세션을 시작했습니다.');
@@ -271,11 +312,14 @@ function bindEvents() {
 
   document.getElementById('mid-form')?.addEventListener('submit', (event) => {
     event.preventDefault();
+
     try {
       requireCurrentSession(stateRef().currentSession);
+
       const updated = applyMidCheck(stateRef().currentSession, getMidPayload());
       setCurrentSession(updated);
       saveCurrentSession(updated);
+
       renderCurrentSession(updated);
       window.alert('중간 체크를 저장했습니다.');
       refreshViews();
@@ -286,6 +330,7 @@ function bindEvents() {
 
   document.getElementById('end-form')?.addEventListener('submit', (event) => {
     event.preventDefault();
+
     try {
       requireCurrentSession(stateRef().currentSession);
       const endPayload = getEndPayload();
@@ -322,6 +367,7 @@ function bindEvents() {
 
       const analysis = analyzeSession(draftCompleted);
       const plannedExperiment = chooseExperiment(analysis);
+
       const { completed } = completeSession(
         stateRef().currentSession,
         endPayload,
@@ -334,9 +380,11 @@ function bindEvents() {
       setCurrentSession(null);
       saveSessions(sessions);
       saveCurrentSession(null);
+
       hydratePreviousExperimentField();
       refreshViews();
       handleRoute('insight');
+
       window.alert(`세션을 종료했습니다. 다음 실험은 “${plannedExperiment.label}”로 제안되었습니다.`);
       resetForms();
     } catch (error) {
@@ -346,6 +394,7 @@ function bindEvents() {
 
   document.getElementById('seed-demo-btn')?.addEventListener('click', () => {
     const sessions = [...stateRef().sessions];
+
     DEMO_SESSIONS.forEach((sessionSeed) => {
       const now = new Date().toISOString();
       const session = {
@@ -360,9 +409,11 @@ function bindEvents() {
           endedAt: now
         }
       };
+
       session.analysis = analyzeSession(session);
       sessions.push(session);
     });
+
     setSessions(sessions);
     saveSessions(sessions);
     refreshViews();
@@ -372,22 +423,28 @@ function bindEvents() {
   document.getElementById('reset-btn')?.addEventListener('click', () => {
     const ok = window.confirm('모든 기록과 진행 중 세션을 삭제할까요?');
     if (!ok) return;
+
     clearAllData();
     setSessions([]);
     setCurrentSession(null);
     setLatestAnalysis(null);
     setLatestReport(null);
+
     resetForms();
     refreshViews();
   });
 
   document.getElementById('export-btn')?.addEventListener('click', () => {
-    downloadJson(`meta-backup-${new Date().toISOString().slice(0, 10)}.json`, exportStore());
+    downloadJson(
+      `meta-backup-${new Date().toISOString().slice(0, 10)}.json`,
+      exportStore()
+    );
   });
 
   document.getElementById('import-file')?.addEventListener('change', async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
     try {
       const text = await file.text();
       const parsed = JSON.parse(text);
@@ -415,9 +472,13 @@ function bindEvents() {
 
 function init() {
   initStaticOptions();
-  RANGE_BINDINGS.forEach(([inputId, outputId]) => bindRangeValue(inputId, outputId));
+
+  RANGE_BINDINGS.forEach(([inputId, outputId]) => {
+    bindRangeValue(inputId, outputId);
+  });
+
   loadInitialData();
-  renderMoodOptions(stateRef().selectedMood);
+  renderMoodOptions(selectedMood);
   renderSubjectReflectionFields(document.getElementById('subject')?.value || '수학');
   hydratePreviousExperimentField();
   bindEvents();
