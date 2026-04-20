@@ -63,10 +63,16 @@ function stateRef() {
   return getState();
 }
 
+function renderMoodButtons() {
+  renderMoodOptions(selectedMood, (mood) => {
+    syncSelectedMood(mood);
+  });
+}
+
 function syncSelectedMood(nextMood) {
   selectedMood = nextMood;
   setSelectedMood(nextMood);
-  renderMoodOptions(selectedMood);
+  renderMoodButtons();
 }
 
 function refreshViews() {
@@ -156,7 +162,6 @@ function hydratePreviousExperimentField() {
   const lastSession = stateRef().sessions[stateRef().sessions.length - 1];
   const select = document.getElementById('previous-experiment-effect');
   const note = document.getElementById('previous-experiment-note');
-
   if (!select || !note) return;
 
   if (lastSession?.experiment?.planned && !lastSession.experiment.result?.helpful) {
@@ -205,7 +210,10 @@ function resetForms() {
   syncSelectedMood('안정');
 
   renderSubjectReflectionFields(document.getElementById('subject')?.value || '수학');
-  RANGE_BINDINGS.forEach(([inputId, outputId]) => bindRangeValue(inputId, outputId));
+
+  RANGE_BINDINGS.forEach(([inputId, outputId]) => {
+    bindRangeValue(inputId, outputId);
+  });
 }
 
 function getPromptSessionSource() {
@@ -275,11 +283,8 @@ function bindEvents() {
     button.addEventListener('click', () => handleRoute(button.dataset.route));
   });
 
-  document.getElementById('mood-options')?.addEventListener('click', (event) => {
-    const button = event.target.closest('[data-mood]');
-    if (!button) return;
-    syncSelectedMood(button.dataset.mood);
-  });
+  // mood-options 부모 위임 이벤트 제거됨
+  // renderMoodButtons()에서 각 버튼에 직접 click/touchend 바인딩
 
   document.getElementById('subject')?.addEventListener('change', (event) => {
     renderSubjectReflectionFields(event.target.value);
@@ -478,7 +483,7 @@ function init() {
   });
 
   loadInitialData();
-  renderMoodOptions(selectedMood);
+  renderMoodButtons();
   renderSubjectReflectionFields(document.getElementById('subject')?.value || '수학');
   hydratePreviousExperimentField();
   bindEvents();
