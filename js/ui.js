@@ -54,6 +54,10 @@ function makeInfoStrip(text, tone = '') {
   return item;
 }
 
+function badge(text, tone = '') {
+  return el('span', `badge ${tone}`.trim(), text);
+}
+
 export function initStaticOptions() {
   appendOptions(document.getElementById('subject'), SUBJECT_OPTIONS);
   appendOptions(document.getElementById('task-type'), TASK_TYPE_OPTIONS);
@@ -69,20 +73,44 @@ export function bindRangeValue(inputId, outputId) {
   const input = document.getElementById(inputId);
   const output = document.getElementById(outputId);
   if (!input || !output) return;
+
   const update = () => {
     output.textContent = input.value;
   };
+
   update();
   input.addEventListener('input', update);
 }
 
-export function renderMoodOptions(selectedMood) {
+/**
+ * 아이패드/WebKit 대응:
+ * mood 버튼은 부모 위임이 아니라 버튼마다 직접 click/touchend를 바인딩
+ */
+export function renderMoodOptions(selectedMood, onSelect) {
   const container = document.getElementById('mood-options');
+  if (!container) return;
+
   clear(container);
+
   MOOD_OPTIONS.forEach((mood) => {
-    const button = el('button', `choice-chip ${selectedMood === mood ? 'active' : ''}`, mood);
+    const button = document.createElement('button');
     button.type = 'button';
+    button.className = `choice-chip ${selectedMood === mood ? 'active' : ''}`;
     button.dataset.mood = mood;
+    button.textContent = mood;
+
+    if (typeof onSelect === 'function') {
+      button.addEventListener('click', () => onSelect(mood));
+      button.addEventListener(
+        'touchend',
+        (event) => {
+          event.preventDefault();
+          onSelect(mood);
+        },
+        { passive: false }
+      );
+    }
+
     container.appendChild(button);
   });
 }
@@ -90,12 +118,16 @@ export function renderMoodOptions(selectedMood) {
 export function renderSubjectReflectionFields(subject, savedValues = {}) {
   const container = document.getElementById('subject-reflection-fields');
   clear(container);
+
   const fields = SUBJECT_REFLECTION_FIELDS[subject] || SUBJECT_REFLECTION_FIELDS['기타'];
+
   fields.forEach((field) => {
     const label = el('label', 'span-2');
     label.textContent = field.label;
+
     const select = document.createElement('select');
     select.id = field.id;
+
     field.options.forEach((option) => {
       const element = document.createElement('option');
       element.value = option;
@@ -103,6 +135,7 @@ export function renderSubjectReflectionFields(subject, savedValues = {}) {
       if (savedValues[field.id] === option) element.selected = true;
       select.appendChild(element);
     });
+
     label.appendChild(select);
     container.appendChild(label);
   });
@@ -153,6 +186,7 @@ export function renderDashboard(report, latestSession) {
     `가장 자주 보인 주원인은 ${CAUSE_LABELS[report.topCause] || '없음'}입니다.`,
     `최근 대표 경향은 ${TYPE_LABELS[report.topType] || '없음'}입니다.`
   ];
+
   warningTexts.forEach((text, index) => {
     warningList.appendChild(makeInfoStrip(text, index === 1 ? 'warn' : ''));
   });
@@ -164,9 +198,9 @@ export function renderDashboard(report, latestSession) {
     ['Self-Criticism', report.averageSelfCriticism, '자기비난 해석 강도']
   ];
 
-  cards.forEach(([label, value, desc]) => {
+  cards.forEach(([labelText, value, desc]) => {
     const card = el('div', 'pill-card');
-    const strong = el('strong', '', label);
+    const strong = el('strong', '', labelText);
     const metric = el('div', 'metric-value', String(value));
     const subtle = el('div', 'subtle', desc);
     card.append(strong, metric, subtle);
@@ -184,14 +218,18 @@ export function renderDashboard(report, latestSession) {
   const archetype = el('div', 'metric-item');
   const title = el('strong', '', '최근 대표 병목');
   const badges = el('div', 'badge-row');
+
   badges.append(
     badge(CAUSE_LABELS[report.topCause] || '없음', 'warn'),
     badge(TYPE_LABELS[report.topType] || '없음')
   );
+
   archetype.append(title, badges);
+
   if (latestSession?.analysis?.insight?.summary) {
     archetype.appendChild(el('p', 'subtle', latestSession.analysis.insight.summary));
   }
+
   archetypeSummary.appendChild(archetype);
 
   const experiments = latestSession?.analysis?.recommendedExperiments || [];
@@ -204,13 +242,10 @@ export function renderDashboard(report, latestSession) {
   }
 }
 
-function badge(text, tone = '') {
-  return el('span', `badge ${tone}`.trim(), text);
-}
-
 export function renderCurrentSession(session) {
   const container = document.getElementById('current-session-card');
   clear(container);
+
   if (!session) {
     container.appendChild(makeInfoStrip('현재 진행 중인 세션이 없습니다.', 'warn'));
     return;
@@ -233,6 +268,7 @@ export function renderCurrentSession(session) {
   } else {
     card.appendChild(el('p', 'subtle', '중간 체크 없음'));
   }
+
   container.appendChild(card);
 }
 
@@ -254,8 +290,15 @@ export function renderInsight(latestSession) {
 
   const left = el('article', 'card');
   left.innerHTML = `
-    <div class="card-head"><div><p class="eyebrow">이번 세션 가설</p><h3>${analysis.typeLabels[0] || '세션 분석'}</h3></div></div>
-    <div class="badge-row">${analysis.typeLabels.map((label) => `<span class="badge warn">${label}</span>`).join('')}</div>
+    <div class="card-head">
+      <div>
+        <p class="eyebrow">이번 세션 가설</p>
+        <h3>${analysis.typeLabels[0] || '세션 분석'}</h3>
+      </div>
+    </div>
+    <div class="badge-row">
+      ${analysis.typeLabels.map((label) => `<span class="badge warn">${label}</span>`).join('')}
+    </div>
     <div class="insight-card">
       <strong>핵심 요약</strong>
       <p>${analysis.insight.summary}</p>
@@ -272,7 +315,12 @@ export function renderInsight(latestSession) {
 
   const right = el('article', 'card');
   right.innerHTML = `
-    <div class="card-head"><div><p class="eyebrow">핵심 지표</p><h3>세션 진단</h3></div></div>
+    <div class="card-head">
+      <div>
+        <p class="eyebrow">핵심 지표</p>
+        <h3>세션 진단</h3>
+      </div>
+    </div>
     <div class="metric-item"><strong>Calibration Score</strong>${progressHTML(analysis.metrics.calibrationScore)}</div>
     <div class="metric-item"><strong>Start Barrier Index</strong>${progressHTML(analysis.metrics.startBarrierIndex)}</div>
     <div class="metric-item"><strong>Recall Quality</strong>${progressHTML(analysis.metrics.recallQuality)}</div>
@@ -281,10 +329,12 @@ export function renderInsight(latestSession) {
 
   const experimentCard = el('div', 'insight-card');
   experimentCard.appendChild(el('strong', '', '추천 실험'));
+
   const list = el('div', 'stack');
   (analysis.recommendedExperiments || []).forEach((experiment) => {
     list.appendChild(makeInfoStrip(`${experiment.label} — ${experiment.description}`, 'good'));
   });
+
   experimentCard.appendChild(list);
   right.appendChild(experimentCard);
 
@@ -314,16 +364,22 @@ export function renderPattern(report) {
   Object.entries(report.subjectStats).forEach(([subject, stats]) => {
     const item = el('div', 'subject-item');
     item.appendChild(el('strong', '', subject));
-    item.appendChild(el('div', 'subtle', `보정 ${stats.calibration} · 장벽 ${stats.barrier} · 자기비난 ${stats.selfCriticism}`));
+    item.appendChild(
+      el('div', 'subtle', `보정 ${stats.calibration} · 장벽 ${stats.barrier} · 자기비난 ${stats.selfCriticism}`)
+    );
+
     const badges = el('div', 'badge-row');
     badges.appendChild(badge(TYPE_LABELS[stats.topType] || '없음'));
     item.appendChild(badges);
+
     subjectPatterns.appendChild(item);
   });
 
-  Object.entries(report.causeCount).sort((a, b) => b[1] - a[1]).forEach(([cause, count]) => {
-    causePatterns.appendChild(makeInfoStrip(`${CAUSE_LABELS[cause]} · ${count}회`, 'warn'));
-  });
+  Object.entries(report.causeCount)
+    .sort((a, b) => b[1] - a[1])
+    .forEach(([cause, count]) => {
+      causePatterns.appendChild(makeInfoStrip(`${CAUSE_LABELS[cause]} · ${count}회`, 'warn'));
+    });
 
   [
     `보정 정확도 평균 ${report.averageCalibration}`,
@@ -331,9 +387,11 @@ export function renderPattern(report) {
     `실험 평가 수 ${report.experimentSummary.recentEvaluated}`
   ].forEach((text) => metricPatterns.appendChild(makeInfoStrip(text)));
 
-  Object.entries(report.typeCount).sort((a, b) => b[1] - a[1]).forEach(([type, count]) => {
-    typePatterns.appendChild(makeInfoStrip(`${TYPE_LABELS[type]} · ${count}회`));
-  });
+  Object.entries(report.typeCount)
+    .sort((a, b) => b[1] - a[1])
+    .forEach(([type, count]) => {
+      typePatterns.appendChild(makeInfoStrip(`${TYPE_LABELS[type]} · ${count}회`));
+    });
 }
 
 export function renderArchive(sessions) {
@@ -349,12 +407,14 @@ export function renderArchive(sessions) {
     const card = el('div', 'archive-item');
     const title = el('strong', '', `${session.context.subject} · ${session.context.taskType}`);
     const detail = el('div', 'subtle', session.context.taskDetail);
+
     const badges = el('div', 'badge-row');
     badges.append(
       badge(`예상 ${session.prediction.predictedAmount}분`),
       badge(`실제 ${session.outcome.actualAmount}분`),
       badge(session.analysis?.causes?.[0]?.label || '분석 없음', 'warn')
     );
+
     const note = el('p', 'subtle', session.analysis?.insight?.summary || '');
     card.append(title, detail, badges, note);
     container.appendChild(card);
@@ -365,6 +425,7 @@ export function updateRoute(route) {
   document.querySelectorAll('.nav-link').forEach((button) => {
     button.classList.toggle('active', button.dataset.route === route);
   });
+
   document.querySelectorAll('.view').forEach((view) => {
     view.classList.toggle('active', view.id === `${route}-view`);
   });
@@ -376,7 +437,11 @@ export function updateRoute(route) {
     pattern: '패턴',
     archive: '아카이브'
   };
-  document.getElementById('page-title').textContent = titleMap[route] || 'Meta';
+
+  const titleNode = document.getElementById('page-title');
+  if (titleNode) {
+    titleNode.textContent = titleMap[route] || 'Meta';
+  }
 }
 
 export function fillExperimentChoices(select, experiments) {
@@ -390,7 +455,9 @@ export function fillExperimentChoices(select, experiments) {
 }
 
 export function downloadJson(filename, data) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify(data, null, 2)], {
+    type: 'application/json'
+  });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
