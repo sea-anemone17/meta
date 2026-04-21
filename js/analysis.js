@@ -240,6 +240,7 @@ function countByKey(items, key) {
 
 export function buildReport(sessions) {
   const recent = sessions.slice(-7);
+
   if (!recent.length) {
     return {
       recent: [],
@@ -252,39 +253,47 @@ export function buildReport(sessions) {
       causeCount: {},
       typeCount: {},
       subjectStats: {},
-      experimentSummary: { best: [], recentEvaluated: 0 }
+      experimentSummary: {
+        best: [],
+        recentEvaluated: 0,
+      },
     };
   }
 
-  const analyses = recent.map((session) => session.analysis).filter(Boolean);
-  const averageCalibration = round(average(analyses.map((a) => a.metrics.calibrationScore)));
-  const averageBarrier = round(average(analyses.map((a) => a.metrics.startBarrierIndex)));
-  const averageRecall = round(average(analyses.map((a) => a.metrics.recallQuality)));
-  const averageSelfCriticism = round(average(analyses.map((a) => a.metrics.selfCriticismRisk)));
+  const analyses = recent
+    .map((session) => session.analysis)
+    .filter(Boolean);
 
-  const topCause = Object.entries(countByKey(analyses.map((a) => a.causes[0]?.key || 'stable'), 'length') && analyses.reduce((acc, analysis) => {
-    const key = analysis.causes[0]?.key || 'stable';
-    acc[key] = (acc[key] || 0) + 1;
-    return acc;
-  }, {})).sort((a, b) => b[1] - a[1])[0]?.[0] || 'stable';
-
-  const topType = Object.entries(analyses.reduce((acc, analysis) => {
-    const key = analysis.types[0] || 'stable';
-    acc[key] = (acc[key] || 0) + 1;
-    return acc;
-  }, {})).sort((a, b) => b[1] - a[1])[0]?.[0] || 'stable';
+  const averageCalibration = round(
+    average(analyses.map((a) => a.metrics.calibrationScore))
+  );
+  const averageBarrier = round(
+    average(analyses.map((a) => a.metrics.startBarrierIndex))
+  );
+  const averageRecall = round(
+    average(analyses.map((a) => a.metrics.recallQuality))
+  );
+  const averageSelfCriticism = round(
+    average(analyses.map((a) => a.metrics.selfCriticismRisk))
+  );
 
   const causeCount = analyses.reduce((acc, analysis) => {
-    const key = analysis.causes[0]?.key || 'stable';
+    const key = analysis.causes?.[0]?.key || 'stable';
     acc[key] = (acc[key] || 0) + 1;
     return acc;
   }, {});
 
   const typeCount = analyses.reduce((acc, analysis) => {
-    const key = analysis.types[0] || 'stable';
+    const key = analysis.types?.[0] || 'stable';
     acc[key] = (acc[key] || 0) + 1;
     return acc;
   }, {});
+
+  const topCause =
+    Object.entries(causeCount).sort((a, b) => b[1] - a[1])[0]?.[0] || 'stable';
+
+  const topType =
+    Object.entries(typeCount).sort((a, b) => b[1] - a[1])[0]?.[0] || 'stable';
 
   const subjectStats = recent.reduce((acc, session) => {
     const subject = session.context.subject;
@@ -294,12 +303,19 @@ export function buildReport(sessions) {
   }, {});
 
   Object.keys(subjectStats).forEach((subject) => {
-    const rows = subjectStats[subject].rows;
+    const rows = subjectStats[subject].rows.filter(Boolean);
+
     subjectStats[subject] = {
-      calibration: round(average(rows.map((row) => row.metrics.calibrationScore))),
-      barrier: round(average(rows.map((row) => row.metrics.startBarrierIndex))),
-      selfCriticism: round(average(rows.map((row) => row.metrics.selfCriticismRisk))),
-      topType: rows[0]?.types?.[0] || 'stable'
+      calibration: round(
+        average(rows.map((row) => row.metrics.calibrationScore))
+      ),
+      barrier: round(
+        average(rows.map((row) => row.metrics.startBarrierIndex))
+      ),
+      selfCriticism: round(
+        average(rows.map((row) => row.metrics.selfCriticismRisk))
+      ),
+      topType: rows[0]?.types?.[0] || 'stable',
     };
   });
 
@@ -307,11 +323,19 @@ export function buildReport(sessions) {
     .filter((session) => session.experiment?.result?.helpful)
     .map((session) => ({
       label: session.experiment?.planned?.label || '미지정',
-      helpful: session.experiment.result.helpful
+      helpful: session.experiment.result.helpful,
     }));
 
   const scoredExperiments = experimentEvaluated.reduce((acc, item) => {
-    const value = item.helpful === 'very_helpful' ? 2 : item.helpful === 'helpful' ? 1 : item.helpful === 'neutral' ? 0 : -1;
+    const value =
+      item.helpful === 'very_helpful'
+        ? 2
+        : item.helpful === 'helpful'
+        ? 1
+        : item.helpful === 'neutral'
+        ? 0
+        : -1;
+
     acc[item.label] ||= { score: 0, count: 0 };
     acc[item.label].score += value;
     acc[item.label].count += 1;
@@ -319,7 +343,11 @@ export function buildReport(sessions) {
   }, {});
 
   const best = Object.entries(scoredExperiments)
-    .map(([label, data]) => ({ label, avg: round((data.score / data.count) * 10) / 10, count: data.count }))
+    .map(([label, data]) => ({
+      label,
+      avg: round((data.score / data.count) * 10) / 10,
+      count: data.count,
+    }))
     .sort((a, b) => b.avg - a.avg)
     .slice(0, 3);
 
@@ -336,7 +364,7 @@ export function buildReport(sessions) {
     subjectStats,
     experimentSummary: {
       best,
-      recentEvaluated: experimentEvaluated.length
-    }
+      recentEvaluated: experimentEvaluated.length,
+    },
   };
 }
