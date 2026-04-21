@@ -331,3 +331,14 @@ ${today.subject} 과목에 맞는 공부 전략을 제안해 줘.
 - 존댓말로 답할 것
   `.trim();
 }
+
+export function generatePrompt(mode, session, report) {
+  const context = buildPromptContext(session, report);
+
+  if (mode === 'routine') return buildRoutinePrompt(context);
+  if (mode === 'reflection') return buildReflectionPrompt(context);
+  if (mode === 'weekly') return buildWeeklyPrompt(context);
+  if (mode === 'subject') return buildSubjectStrategyPrompt(context);
+
+  return buildRoutinePrompt(context); // 기본값
+}
