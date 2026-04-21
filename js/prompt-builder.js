@@ -5,28 +5,41 @@ function safe(value, fallback = "없음") {
   return value;
 }
 
-function labelLevel(value, map) {
-  if (value === null || value === undefined) return "정보 없음";
-  return map[value] ?? String(value);
-}
-
-function averageToLabel(value, goodHigh = true) {
-  if (value === null || value === undefined || Number.isNaN(value)) return "정보 부족";
-  if (goodHigh) {
-    if (value >= 80) return "매우 높음";
-    if (value >= 65) return "높음";
-    if (value >= 45) return "보통";
-    return "낮음";
-  }
-  if (value >= 80) return "매우 높음";
-  if (value >= 65) return "높음";
-  if (value >= 45) return "보통";
-  return "낮음";
-}
-
 function getSubjectStats(report, subject) {
   if (!report?.subjectStats || !subject) return null;
   return report.subjectStats[subject] ?? null;
+}
+
+function getTopExperimentLabel(report) {
+  const best = report?.experimentSummary?.best;
+  if (!Array.isArray(best) || best.length === 0) return "없음";
+  return best[0]?.label ?? "없음";
+}
+
+function mapCauseLabel(key) {
+  const labels = {
+    stable: "안정",
+    start_barrier: "시작 장벽",
+    calibration_gap: "예측 오차",
+    low_recall: "회상 부족",
+    self_criticism: "자기비난",
+    interruption: "방해 많음",
+    overload: "과부하",
+  };
+  return labels[key] ?? safe(key);
+}
+
+function mapTypeLabel(key) {
+  const labels = {
+    stable: "안정형",
+    overpredict: "과대예측형",
+    underpredict: "과소예측형",
+    fragile_start: "시작 취약형",
+    shaky_focus: "집중 흔들림형",
+    low_recall: "회상 취약형",
+    self_blame: "자기비난형",
+  };
+  return labels[key] ?? safe(key);
 }
 
 export function buildPromptContext(session, report) {
@@ -57,7 +70,7 @@ export function buildPromptContext(session, report) {
 
   const blamedSelfFirst = safe(session?.reflection?.selfCriticism?.blamedSelfFirst);
   const feltIncompetent = safe(session?.reflection?.selfCriticism?.feltIncompetent);
-  const ignoredStrategyIssue = safe(session?.reflection?.selfCriticism?.ignoredStrategyIssue);
+  const distortedOutcome = safe(session?.reflection?.selfCriticism?.distortedOutcome);
   const successFactor = safe(session?.reflection?.successFactor);
 
   const usedMidCheck = session?.progress?.midCheck?.used ? "예" : "아니오";
@@ -67,11 +80,6 @@ export function buildPromptContext(session, report) {
   const trigger = safe(session?.progress?.midCheck?.trigger);
   const responseTaken = safe(session?.progress?.midCheck?.responseTaken);
 
-  const topCause = safe(report?.topCause?.label);
-  const topType = safe(report?.topType?.label);
-  const bestExperiment = safe(report?.experimentSummary?.best?.label);
-
-  const averages = report?.averages ?? {};
   const subjectStats = getSubjectStats(report, subject);
 
   return {
@@ -91,7 +99,7 @@ export function buildPromptContext(session, report) {
       actualUnderstanding,
       overallFeeling,
       interruptions,
-      mainObstacle
+      mainObstacle,
     },
     progress: {
       usedMidCheck,
@@ -99,37 +107,37 @@ export function buildPromptContext(session, report) {
       focusDrop,
       wandering,
       trigger,
-      responseTaken
+      responseTaken,
     },
     recall: {
       conceptSummary,
       confusionPoint,
       nextStrategy,
-      selfTestResult
+      selfTestResult,
     },
     reflection: {
       blamedSelfFirst,
       feltIncompetent,
-      ignoredStrategyIssue,
-      successFactor
+      distortedOutcome,
+      successFactor,
     },
     trends: {
-      topCause,
-      topType,
-      bestExperiment,
-      averageCalibration: averages.averageCalibration ?? null,
-      averageBarrier: averages.averageBarrier ?? null,
-      averageRecall: averages.averageRecall ?? null,
-      averageSelfCriticism: averages.averageSelfCriticism ?? null
+      topCause: mapCauseLabel(report?.topCause),
+      topType: mapTypeLabel(report?.topType),
+      bestExperiment: getTopExperimentLabel(report),
+      averageCalibration: report?.averageCalibration ?? null,
+      averageBarrier: report?.averageBarrier ?? null,
+      averageRecall: report?.averageRecall ?? null,
+      averageSelfCriticism: report?.averageSelfCriticism ?? null,
     },
     subjectStats: subjectStats
       ? {
           calibration: subjectStats.calibration ?? null,
           barrier: subjectStats.barrier ?? null,
           selfCriticism: subjectStats.selfCriticism ?? null,
-          topType: safe(subjectStats.topType)
+          topType: mapTypeLabel(subjectStats.topType),
         }
-      : null
+      : null,
   };
 }
 
@@ -178,7 +186,7 @@ export function buildRoutinePrompt(context) {
 - 각 블록은 너무 길지 않게 제안할 것
 - 왜 이 루틴이 적절한지도 짧게 설명할 것
 - 존댓말로 답할 것
-`.trim();
+  `.trim();
 }
 
 export function buildReflectionPrompt(context) {
@@ -222,7 +230,7 @@ export function buildReflectionPrompt(context) {
 [자기 해석]
 - 결과보다 나 자신을 먼저 탓함: ${reflection.blamedSelfFirst}/5
 - 능력 부족처럼 느껴짐: ${reflection.feltIncompetent}/5
-- 전략 문제를 놓쳤을 수 있음: ${reflection.ignoredStrategyIssue}/5
+- 실제보다 더 망했다고 느낌: ${reflection.distortedOutcome}/5
 - 오늘 잘된 이유: ${reflection.successFactor}
 
 [최근 패턴]
@@ -232,27 +240,21 @@ export function buildReflectionPrompt(context) {
 [요청]
 오늘 학습을 짧고 구조적으로 회고해 줘.
 
-[원하는 출력 형식]
-1. 오늘의 핵심 패턴 2~3개
-2. 실제로 잘한 점 2개
-3. 놓친 점 1~2개
-4. 다음 세션에서 바꿀 행동 1개
-5. 자기비난이 섞였는지도 판단
-
 [조건]
-- 과장하지 말 것
-- 막연한 위로보다 구체적인 해석을 줄 것
+- 사실과 해석을 구분할 것
+- 자기비난보다 전략 수정에 초점을 둘 것
+- 마지막에 다음 세션 조정점 1개만 제시할 것
 - 존댓말로 답할 것
-`.trim();
+  `.trim();
 }
 
-export function buildWeeklyAnalysisPrompt(context) {
+export function buildWeeklyPrompt(context) {
   if (!context) return "먼저 세션을 하나 기록해 주세요.";
 
-  const { trends, subjectStats, today } = context;
+  const { today, trends, subjectStats } = context;
 
   return `
-나는 고등학생이고, 최근 공부 기록의 패턴을 분석하고 싶다.
+나는 고등학생이고, 최근 공부 패턴을 바탕으로 다음 주 전략을 짜고 싶다.
 
 [최근 전체 경향]
 - 최근 대표 원인: ${trends.topCause}
@@ -273,26 +275,21 @@ export function buildWeeklyAnalysisPrompt(context) {
 [요청]
 최근 공부 패턴을 분석하고, 다음 주에 적용할 전략을 제안해 줘.
 
-[원하는 출력 형식]
-1. 가장 반복되는 패턴 3개
-2. 실제 핵심 병목 1개
-3. 다음 주 전략 2개
-4. 피해야 할 실수 1개
-
 [조건]
-- 지나치게 추상적이지 않게
-- 실행 가능한 수준으로
+- 문제 진단 3개 이하
+- 실행 전략은 우선순위가 높은 것부터
+- 현실적인 루틴으로 제안할 것
 - 존댓말로 답할 것
-`.trim();
+  `.trim();
 }
 
 export function buildSubjectStrategyPrompt(context) {
   if (!context) return "먼저 세션을 하나 기록해 주세요.";
 
-  const { today, progress, recall, subjectStats, trends } = context;
+  const { today, progress, recall, trends, subjectStats } = context;
 
   return `
-나는 고등학생이고, ${today.subject} 공부 전략을 구체적으로 조정하고 싶다.
+나는 고등학생이고, 특정 과목에 맞는 공부 전략이 필요하다.
 
 [현재 과목]
 - 과목: ${today.subject}
@@ -328,27 +325,9 @@ export function buildSubjectStrategyPrompt(context) {
 ${today.subject} 과목에 맞는 공부 전략을 제안해 줘.
 
 [조건]
-- 고등학생 수준에 맞출 것
-- 블록형으로 제안할 것
-- 너무 많은 선택지를 주지 말 것
-- 내가 실제로 실행하기 쉬운 구조를 우선할 것
+- 방법을 2~3개만 제시할 것
+- 각 방법이 왜 이 과목에 맞는지 설명할 것
+- 바로 적용 가능한 예시를 포함할 것
 - 존댓말로 답할 것
-`.trim();
-}
-
-export function generatePrompt(mode, session, report) {
-  const context = buildPromptContext(session, report);
-
-  switch (mode) {
-    case "routine":
-      return buildRoutinePrompt(context);
-    case "reflection":
-      return buildReflectionPrompt(context);
-    case "weekly":
-      return buildWeeklyAnalysisPrompt(context);
-    case "subject":
-      return buildSubjectStrategyPrompt(context);
-    default:
-      return buildRoutinePrompt(context);
-  }
+  `.trim();
 }
