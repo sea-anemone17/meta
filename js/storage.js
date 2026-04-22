@@ -1,88 +1,146 @@
+const STORAGE_KEY = 'meta_experiment_store';
+const CURRENT_SESSION_KEY = 'meta_experiment_current_session';
+export const SCHEMA_VERSION = 3;
 
-const STORAGE_KEY = "hazel_study_room_v2";
-const THEME_KEY = "hazel_study_room_theme";
-
-function createDefaultCharacters() {
-  return [
-    {
-      id: "char_g",
-      name: "G",
-      avatar: "",
-      color: "#7aa2ff",
-      description: "논리적이고 차분한 해석자",
-      stats: { observe: 60, insight: 80, persuade: 45, logic: 75, psychology: 70, law: 78 }
-    },
-    {
-      id: "char_e",
-      name: "E",
-      avatar: "",
-      color: "#ff7f96",
-      description: "직설적이고 검증적인 반박자",
-      stats: { observe: 55, insight: 68, persuade: 52, logic: 80, psychology: 48, law: 70 }
-    }
-  ];
-}
-
-function createDefaultSession() {
-  const now = new Date().toISOString();
-  return {
-    id: "session_" + Date.now(),
-    title: "첫 세션",
-    subject: "자유 세션",
-    coverImage: "",
-    goal: "이번 세션의 학습 목표를 정해 주세요.",
-    createdAt: now,
-    updatedAt: now,
-    notes: "",
-    timer: {
-      durationSec: 1500,
-      remainingSec: 1500,
-      isRunning: false,
-      lastStartedAt: null
-    },
-    characters: createDefaultCharacters(),
-    logs: [
-      {
-        id: "log_" + Date.now(),
-        type: "system",
-        speakerId: null,
-        speakerName: "시스템",
-        text: "새 세션이 준비되었습니다. 목표를 적고, 캐릭터를 고른 뒤 로그를 시작해 보세요.",
-        createdAt: now
-      }
-    ]
-  };
-}
-
-function createDefaultState() {
-  const session = createDefaultSession();
-  return {
-    sessions: [session],
-    currentSessionId: session.id
-  };
-}
-
-function loadAppState() {
+function safeJsonParse(value, fallback) {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return createDefaultState();
-    const parsed = JSON.parse(raw);
-    if (!parsed.sessions?.length) return createDefaultState();
-    return parsed;
-  } catch (err) {
-    console.error("loadAppState error:", err);
-    return createDefaultState();
+    return JSON.parse(value);
+  } catch {
+    return fallback;
   }
 }
 
-function saveAppState(state) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+function createStore(sessions = []) {
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    sessions
+  };
 }
 
-function saveTheme(theme) {
-  localStorage.setItem(THEME_KEY, theme);
+function ensureSessionShape(session) {
+  return {
+    id: session.id || `session_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    schemaVersion: SCHEMA_VERSION,
+    timestamps: {
+      createdAt: session.timestamps?.createdAt || session.createdAt || new Date().toISOString(),
+      plannedStartAt: session.timestamps?.plannedStartAt || session.plannedStartAt || '',
+      actualStartAt: session.timestamps?.actualStartAt || session.createdAt || new Date().toISOString(),
+      midCheckedAt: session.timestamps?.midCheckedAt || '',
+      endedAt: session.timestamps?.endedAt || ''
+    },
+    context: {
+      subject: session.context?.subject || session.subject || '기타',
+      taskType: session.context?.taskType || session.taskType || '복습',
+      taskDetail: session.context?.taskDetail || session.taskDetail || '',
+      environment: {
+        location: session.context?.environment?.location || session.location || '기타',
+        phoneBlocked: Boolean(session.context?.environment?.phoneBlocked ?? session.phoneBlocked),
+        noiseLevel: Number(session.context?.environment?.noiseLevel ?? session.noiseLevel ?? 2)
+      }
+    },
+    prediction: {
+      predictedAmount: Number(session.prediction?.predictedAmount ?? session.predictedAmount ?? 0),
+      predictedFocus: Number(session.prediction?.predictedFocus ?? session.predictedFocus ?? 3),
+      predictedUnderstanding: Number(session.prediction?.predictedUnderstanding ?? session.predictedUnderstanding ?? 3),
+      startDifficulty: Number(session.prediction?.startDifficulty ?? session.startDifficulty ?? 3),
+      confidenceFocus: Number(session.prediction?.confidenceFocus ?? 3),
+      confidenceUnderstanding: Number(session.prediction?.confidenceUnderstanding ?? 3),
+      moodBefore: session.prediction?.moodBefore || session.moodBefore || '안정'
+    },
+    progress: {
+      midCheck: {
+        used: Boolean(session.progress?.midCheck?.used || session.midCheck?.used),
+        stuck: Boolean(session.progress?.midCheck?.stuck || session.midCheck?.stuck),
+        focusDrop: Boolean(session.progress?.midCheck?.focusDrop || session.midCheck?.focusDrop),
+        wandering: Boolean(session.progress?.midCheck?.wandering || session.midCheck?.wandering),
+        trigger: session.progress?.midCheck?.trigger || '',
+        responseTaken: session.progress?.midCheck?.responseTaken || '그대로 진행'
+      }
+    },
+    outcome: {
+      actualAmount: Number(session.outcome?.actualAmount ?? session.actualAmount ?? 0),
+      actualFocus: Number(session.outcome?.actualFocus ?? session.actualFocus ?? 3),
+      actualUnderstanding: Number(session.outcome?.actualUnderstanding ?? session.actualUnderstanding ?? 3),
+      interruptions: Number(session.outcome?.interruptions ?? session.interruptions ?? 0),
+      mainObstacle: session.outcome?.mainObstacle || session.mainObstacle || '없음',
+      overallFeeling: session.outcome?.overallFeeling || session.overallFeeling || '대체로 무난함'
+    },
+    recall: {
+      conceptSummary: session.recall?.conceptSummary || session.recallSummary || '',
+      confusionPoint: session.recall?.confusionPoint || session.stuckPoint || '',
+      nextStrategy: session.recall?.nextStrategy || '',
+      selfTestResult: Number(session.recall?.selfTestResult ?? 0),
+      subjectReflection: session.recall?.subjectReflection || {}
+    },
+    reflection: {
+      selfCriticism: {
+        blamedSelfFirst: Number(session.reflection?.selfCriticism?.blamedSelfFirst ?? 2),
+        feltIncompetent: Number(session.reflection?.selfCriticism?.feltIncompetent ?? 2),
+        distortedOutcome: Number(session.reflection?.selfCriticism?.distortedOutcome ?? 2)
+      },
+      successFactor: session.reflection?.successFactor || ''
+    },
+    experiment: {
+      planned: session.experiment?.planned || null,
+      result: {
+        helpful: session.experiment?.result?.helpful || '',
+        note: session.experiment?.result?.note || ''
+      }
+    },
+    analysis: session.analysis || null
+  };
 }
 
-function loadTheme() {
-  return localStorage.getItem(THEME_KEY) || "dark";
+function migrateStore(raw) {
+  if (!raw || typeof raw !== 'object') return createStore();
+  const sessions = Array.isArray(raw.sessions) ? raw.sessions.map(ensureSessionShape) : [];
+  return createStore(sessions);
+}
+
+export function loadStore() {
+  const raw = safeJsonParse(localStorage.getItem(STORAGE_KEY), null);
+  const store = migrateStore(raw);
+  saveStore(store);
+  return store;
+}
+
+export function saveStore(store) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(createStore(store.sessions || [])));
+}
+
+export function loadSessions() {
+  return loadStore().sessions;
+}
+
+export function saveSessions(sessions) {
+  saveStore(createStore(sessions.map(ensureSessionShape)));
+}
+
+export function loadCurrentSession() {
+  const raw = safeJsonParse(localStorage.getItem(CURRENT_SESSION_KEY), null);
+  if (!raw) return null;
+  return ensureSessionShape(raw);
+}
+
+export function saveCurrentSession(session) {
+  if (!session) {
+    localStorage.removeItem(CURRENT_SESSION_KEY);
+    return;
+  }
+  localStorage.setItem(CURRENT_SESSION_KEY, JSON.stringify(ensureSessionShape(session)));
+}
+
+export function clearAllData() {
+  localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(CURRENT_SESSION_KEY);
+}
+
+export function exportStore() {
+  return loadStore();
+}
+
+export function importStore(data) {
+  const migrated = migrateStore(data);
+  saveStore(migrated);
+  return migrated.sessions;
 }
